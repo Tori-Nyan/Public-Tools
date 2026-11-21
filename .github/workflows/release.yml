@@ -33,8 +33,8 @@ jobs:
       # Configure the Environment Variables needed for releasing the Package
       - name: Set Environment Variables
         run: |
-          echo "zipFile=${{ vars.PACKAGE_NAME }}-${{ steps.version.outputs.value }}".zip >> $GITHUB_ENV
-          echo "unityPackage=${{ vars.PACKAGE_NAME }}-${{ steps.version.outputs.value }}.unitypackage" >> $GITHUB_ENV
+          echo "zipFile=com.torinyan.PubTools-${{ steps.version.outputs.value }}".zip >> $GITHUB_ENV
+          echo "unityPackage=com.torinyan.PubTools-${{ steps.version.outputs.value }}.unitypackage" >> $GITHUB_ENV
           echo "version=${{ steps.version.outputs.value }}" >> $GITHUB_ENV
 
       # Zip the Package for release
@@ -50,7 +50,7 @@ jobs:
       - name: Create UnityPackage
         uses: pCYSl5EDgo/create-unitypackage@v1.2.3
         with:
-          package-path: "com.torinyan.PubTools"
+          package-path: ${{ env.unityPackage }}
           include-files: metaList
 
       # Make a release tag of the version from the package.json file
