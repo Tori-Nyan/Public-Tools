@@ -13,9 +13,9 @@ namespace com.torinyan.PubTools.Editor
 {
     internal static class ToriUtils
     {
-        private const string CToriGeneratedFolder = "[Torinyan] Generated Assets";
-        private const string CVRCFuryTempFolder = "com.vrcfury.temp";
-        private const string CNDMFGeneratedFolder = "nadena.dev.ndmf";
+        internal const string CToriGeneratedFolder = "[Torinyan] Generated Assets";
+        internal const string CVRCFuryTempFolder = "com.vrcfury.temp";
+        internal const string CNDMFGeneratedFolder = "nadena.dev.ndmf";
 
         internal const string GeneratedAssetFolder = "Assets/" + CToriGeneratedFolder;
         internal const string GeneratedAssetSuffix = "_pesky";
