@@ -15,7 +15,7 @@ Open via `Tools` / `Torinyan` / `Create Nice Layer`
 !! Not finished !!
 
 This will be our replacement for MA and Fury when it comes to avatar modularity.  
-We have our opwn vision on how this should be done and wish to bring this to life, for our users to enjoy.  
+We have our own vision on how this should be done and wish to bring this to life, for our users to enjoy.  
 We didn't want a spiderweb of components and ugly menu structures, or blackbox tools that mess with files and parameters in ways we can't predict.
 
 To realize this, we'll have to make it ourselves. C:
