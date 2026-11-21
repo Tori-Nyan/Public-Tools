@@ -67,5 +67,5 @@ jobs:
           files: |
             ${{ env.zipFile }}
             ${{ env.unityPackage }}
-            "com.torinyan.PubTools/package.json"
+            com.torinyan.PubTools/package.json
           tag_name: ${{ env.version }}
