@@ -1,0 +1,26 @@
+{
+  "name": "com.torinyan.PubTools",
+  "displayName": "[Torinyan] Public Tools",
+  "description": "A collection of tools, made available to the public, by Torinyan.",
+  "version": "0.1.0",
+  "unity": "2022.3",
+  "author": {
+    "name": "Tori-Nyan",
+    "url": "https://github.com/Tori-Nyan"
+  },
+  "keywords": [
+    "Torinyan",
+    "Tori",
+    "Nyan",
+    "Material",
+    "swap",
+    "Avatar"
+  ],
+  "type": "tool",
+  "vpmDependencies": {
+    "com.vrchat.avatars": "^3.10.0"
+  },
+  "license": "GPL-3.0",
+  "licensesUrl": "https://github.com/Tori-Nyan/Public-Tools/blob/master/LICENSE",
+  "changelogUrl": "https://github.com/Tori-Nyan/Public-Tools/blob/master/CHANGELOG.md"
+}
