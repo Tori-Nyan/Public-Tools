@@ -22,7 +22,7 @@ namespace com.torinyan.PubTools.Editor
 
         public const string LogPrefix = "Tori Utils";
         public const string EmptyAnimName = "empty_anim";
-        public const string EmptyAnimDirectory = "Assets/cat prototype/anims";
+        public const string EmptyAnimDirectory = GeneratedAssetFolder + "/anims";
         public const string EmptyAnimPath = EmptyAnimDirectory + "/" + EmptyAnimName + ".anim";
         public readonly static Vector2 AnyStatePos = new(20, -110);
         public readonly static Vector2 ExitStatePos = new(20, -70);
