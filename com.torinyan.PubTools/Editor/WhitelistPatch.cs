@@ -1,3 +1,8 @@
+/*
+* Torinyan Public Tools
+* No license claim here, due to it being based on VRCFury's WhitelistPatch:
+* https://github.com/VRCFury/VRCFury/blob/19dcea72e494c7dc6d265259acddda9057ddfd4c/com.vrcfury.vrcfury/Editor/VF/VrcfEditorOnly/WhitelistPatch.cs
+*/
 #if UNITY_EDITOR
 using com.torinyan.PubTools.Runtime.Components;
 using System;
@@ -8,7 +13,6 @@ using UnityEngine;
 
 namespace com.torinyan.PubTools.Editor
 {
-    // Based on https://github.com/VRCFury/VRCFury/blob/19dcea72e494c7dc6d265259acddda9057ddfd4c/com.vrcfury.vrcfury/Editor/VF/VrcfEditorOnly/WhitelistPatch.cs
     internal static class WhitelistPatch
     {
         private readonly static string CToriAddonSettingsName = typeof(ToriAddonSettings).FullName;
