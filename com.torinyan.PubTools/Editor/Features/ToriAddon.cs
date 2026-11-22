@@ -22,21 +22,20 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using VRC.SDK3.Avatars.Components;
 using VRC.SDK3.Avatars.ScriptableObjects;
 
 namespace com.torinyan.PubTools.Editor.Features
 {
     internal static class ToriAddon
     {
-        public static void Process(VRCAvatarDescriptor avatar, bool isHuman, ToriAddonSettings settings) {
+        public static void Process(ToriAddonSettings settings) {
             var skinnedMeshes = settings.GetComponentsInChildren<SkinnedMeshRenderer>();
             var staticMeshes = settings.GetComponentsInChildren<MeshRenderer>();
 
-            MergeParameters(avatar, settings.Parameters.parameters);
+            MergeParameters(settings.Parameters.parameters);
 
             foreach (var menu in settings.Menus) {
-                MergeMenu(avatar, menu);
+                MergeMenu(menu);
             }
 
             var mergeTarget = string.Empty;
@@ -49,30 +48,30 @@ namespace com.torinyan.PubTools.Editor.Features
                 if (settings.MergeAsChild) {
                     mergeTarget = ToriUtils.MakeUniqueName(
                         mergeTarget,
-                        (candidate) => null != avatar.transform.Find(candidate)
+                        (candidate) => null != StateHolder.Avatar.transform.Find(candidate)
                     );
                     objectName = mergeTarget[(mergeTarget.LastIndexOf('/') + 1)..];
                 }
 
-                MergeArmature(avatar, settings.transform.Find(settings.MergeSource), settings.MergeTarget, objectName, settings.MergeAsChild);
+                MergeArmature(settings.transform.Find(settings.MergeSource), settings.MergeTarget, objectName, settings.MergeAsChild);
             }
 
             if (settings.UpdateAnchors)
-                UpdateAnchors(avatar, skinnedMeshes, staticMeshes, settings.Anchor, settings.AnchorOverride);
+                UpdateAnchors(skinnedMeshes, staticMeshes, settings.Anchor, settings.AnchorOverride);
 
             if (settings.UpdateBounds)
                 UpdateBounds(skinnedMeshes, settings.NewBounds);
 
             foreach (var animator in settings.Animators) {
-                MergeAnimator(avatar, isHuman, animator, settings.MergeSource, mergeTarget);
+                MergeAnimator(animator, settings.MergeSource, mergeTarget);
             }
         }
 
-        private static void MergeParameters(VRCAvatarDescriptor avatar, VRCExpressionParameters.Parameter[] parameters) {
-            List<VRCExpressionParameters.Parameter> paramArr = new(avatar.expressionParameters.parameters);
+        private static void MergeParameters(VRCExpressionParameters.Parameter[] parameters) {
+            List<VRCExpressionParameters.Parameter> paramArr = new(StateHolder.Avatar.expressionParameters.parameters);
 
             foreach (var parameter in parameters) {
-                if (null != avatar.expressionParameters.FindParameter(parameter.name))
+                if (null != StateHolder.Avatar.expressionParameters.FindParameter(parameter.name))
                     continue;
 
                 paramArr.Add(new() {
@@ -89,12 +88,12 @@ namespace com.torinyan.PubTools.Editor.Features
                 });
             }
 
-            avatar.expressionParameters.parameters = paramArr.ToArray();
+            StateHolder.Avatar.expressionParameters.parameters = paramArr.ToArray();
         }
 
-        private static void MergeMenu(VRCAvatarDescriptor avatar, AddonMenuInfo menu) {
+        private static void MergeMenu(AddonMenuInfo menu) {
             var itemName = menu.Prefix[(menu.Prefix.LastIndexOf('/') + 1)..];
-            var parent = ToriUtils.GetMenuForItem(avatar.expressionsMenu, ToriUtils.GeneratedAssetFolder, menu.Prefix);
+            var parent = ToriUtils.GetMenuForItem(StateHolder.Avatar.expressionsMenu, ToriUtils.GeneratedAssetFolder, menu.Prefix);
 
             foreach (var item in parent.controls.Where(x => VRCExpressionsMenu.Control.ControlType.SubMenu == x.type)) {
                 if (item.name.Equals(itemName, StringComparison.Ordinal)) {
@@ -114,19 +113,19 @@ namespace com.torinyan.PubTools.Editor.Features
             });
         }
 
-        private static void UpdateAnchors(VRCAvatarDescriptor avatar, SkinnedMeshRenderer[] skinnedMeshes, MeshRenderer[] staticMeshes,
+        private static void UpdateAnchors(SkinnedMeshRenderer[] skinnedMeshes, MeshRenderer[] staticMeshes,
             string rootBone, string anchorOverride
         ) {
             foreach (var mesh in skinnedMeshes) {
                 if (!string.IsNullOrWhiteSpace(rootBone)) {
-                    var newRoot = avatar.transform.Find(rootBone);
+                    var newRoot = StateHolder.Avatar.transform.Find(rootBone);
 
                     if (null != newRoot)
                         mesh.rootBone = newRoot;
                 }
 
                 if (!string.IsNullOrWhiteSpace(anchorOverride)) {
-                    var newAnchor = avatar.transform.Find(anchorOverride);
+                    var newAnchor = StateHolder.Avatar.transform.Find(anchorOverride);
 
                     if (null != newAnchor)
                         mesh.probeAnchor = newAnchor;
@@ -137,7 +136,7 @@ namespace com.torinyan.PubTools.Editor.Features
 
             foreach (var mesh in staticMeshes) {
                 if (!string.IsNullOrWhiteSpace(anchorOverride)) {
-                    var newAnchor = avatar.transform.Find(anchorOverride);
+                    var newAnchor = StateHolder.Avatar.transform.Find(anchorOverride);
 
                     if (null != newAnchor)
                         mesh.probeAnchor = newAnchor;
@@ -154,9 +153,9 @@ namespace com.torinyan.PubTools.Editor.Features
             }
         }
 
-        private static void MergeArmature(VRCAvatarDescriptor avatar, Transform sourceObj, string parent, string name, bool asChild) {
+        private static void MergeArmature(Transform sourceObj, string parent, string name, bool asChild) {
             // we have to prefix every animation property as well.. ._."
-            Transform parentObj = EnsureTargetExists(avatar.transform, parent);
+            Transform parentObj = EnsureTargetExists(StateHolder.Avatar.transform, parent);
 
             if (null == parentObj)
                 throw new InvalidOperationException($"Unable to find or create target oject at path `{parent}`");
@@ -169,7 +168,7 @@ namespace com.torinyan.PubTools.Editor.Features
             }
 
             /* Make magic merge code, copy components when object exists, etc
-            parentObj = EnsureTargetExists(avatar.transform, target);
+            parentObj = EnsureTargetExists(StateHolder.Avatar.transform, target);
 
             if (null == parentObj)
                 throw new InvalidOperationException($"Unable to find or create target oject at path `{target}`");
@@ -218,11 +217,11 @@ namespace com.torinyan.PubTools.Editor.Features
             return parentObj;
         }
 
-        private static void MergeAnimator(VRCAvatarDescriptor avatar, bool isHuman, AddonAnimatorInfo animator, string oldAnimPath,
+        private static void MergeAnimator(AddonAnimatorInfo animator, string oldAnimPath,
             string newAnimPath
         ) {
             var srcCtrl = animator.Controller;
-            var dstCrtl = ToriUtils.GetOrCreateController(avatar, isHuman, animator.Type);
+            var dstCrtl = ToriUtils.GetOrCreateController(StateHolder.Avatar, StateHolder.IsHuman, animator.Type);
 
             foreach (var clip in srcCtrl.animationClips) {
                 // Clone these into a single asset file

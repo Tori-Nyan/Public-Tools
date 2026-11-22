@@ -17,14 +17,21 @@
 */
 #if UNITY_EDITOR
 using System.Collections.Generic;
+using com.torinyan.PubTools.Editor.Builders;
 using UnityEditor;
 using UnityEngine;
+using VRC.SDK3.Avatars.Components;
 
 namespace com.torinyan.PubTools.Editor
 {
     internal static class StateHolder
     {
         private static readonly List<Transform> _objStates = new();
+
+        public static VRCAvatarDescriptor Avatar { get; private set; }
+        public static bool IsHuman { get; private set; }
+        public static MenuBuilder Menu { get; private set; }
+        public static ParameterBuilder Parameter { get; private set; }
 
         [InitializeOnLoadMethod]
         static void Init() {
@@ -42,6 +49,24 @@ namespace com.torinyan.PubTools.Editor
 
             if (!_objStates.Contains(goTrans))
                 _objStates.Add(goTrans);
+        }
+
+        public static void Load(VRCAvatarDescriptor avatar) {
+            Avatar = avatar;
+            IsHuman = Avatar.GetComponent<Animator>()?.isHuman ?? false;
+
+            Avatar.customExpressions = true;
+
+            Menu = Avatar.customExpressions ? new(Avatar.expressionsMenu) : new();
+            Parameter = Avatar.customExpressions ? new(Avatar.expressionParameters) : new();
+
+            ToriUtils.MarkDirty(Avatar);
+        }
+
+        public static void Unload() {
+            Parameter = null;
+            Menu = null;
+            Avatar = null;
         }
     }
 }

@@ -117,45 +117,39 @@ namespace com.torinyan.PubTools.Editor.Builders
             public string RadialParam;
         }
 
-        private readonly SubMenuItem _mainMenu;
+        private SubMenuItem _mainMenu;
 
-        public MenuBuilder() {
-            VRCExpressionsMenu menu = ScriptableObject.CreateInstance<VRCExpressionsMenu>();
-            menu.name = "Tori Menu";
-            _mainMenu = new() {
-                Name = menu.name,
-                Asset = ScriptableObject.CreateInstance<VRCExpressionsMenu>(),
-                FilePath = Path.Combine(ToriUtils.GeneratedAssetFolder, $"{menu.name}.asset")
-            };
-        }
+        public MenuBuilder() =>
+            Init(null);
 
-        public MenuBuilder(string filePath) {
-            VRCExpressionsMenu menu = ScriptableObject.CreateInstance<VRCExpressionsMenu>();
-            menu.name = Path.GetFileNameWithoutExtension(filePath);
-            _mainMenu = new() {
-                Name = menu.name,
-                Asset = menu,
-                FilePath = filePath
-            };
-        }
+        public MenuBuilder(string assetPath) =>
+            Init(AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(assetPath));
 
-        public MenuBuilder(VRCExpressionsMenu mainMenu) {
+        public MenuBuilder(VRCExpressionsMenu mainMenu) =>
+            Init(mainMenu);
+
+        private void Init(VRCExpressionsMenu mainMenu) {
             VRCExpressionsMenu menu = mainMenu;
             string assetPath = AssetDatabase.GetAssetPath(menu);
 
-            if (string.IsNullOrWhiteSpace(assetPath)) {
+            if (null == menu || string.IsNullOrWhiteSpace(assetPath)) {
                 menu = ScriptableObject.CreateInstance<VRCExpressionsMenu>();
                 menu.name = "Tori Menu";
-                assetPath = Path.Combine(ToriUtils.GeneratedAssetFolder, "Tori Menu.asset");
+                assetPath = Path.Combine(ToriUtils.GeneratedAssetFolder, $"{menu.name}.asset");
+                AssetDatabase.CreateAsset(menu, assetPath);
             } else if (!(
                 assetPath.Contains(ToriUtils.CToriGeneratedFolder, StringComparison.OrdinalIgnoreCase) ||
                 assetPath.Contains(ToriUtils.CVRCFuryTempFolder, StringComparison.OrdinalIgnoreCase) ||
                 assetPath.Contains(ToriUtils.CNDMFGeneratedFolder, StringComparison.OrdinalIgnoreCase)
             )) {
-                assetPath = Path.Combine(ToriUtils.GeneratedAssetFolder, $"{menu.name}{ToriUtils.GeneratedAssetSuffix}.asset");
+                menu = UnityEngine.Object.Instantiate(menu);
+                menu.name += ToriUtils.GeneratedAssetSuffix;
+                assetPath = Path.Combine(ToriUtils.GeneratedAssetFolder, $"{menu.name}.asset");
+                AssetDatabase.CreateAsset(menu, assetPath);
             }
 
             _mainMenu = LoadMenu(menu, assetPath);
+            StateHolder.Avatar.expressionsMenu = _mainMenu.Asset;
         }
 
         private SubMenuItem LoadMenu(VRCExpressionsMenu menu, string filePath = null, Texture2D icon = null,
