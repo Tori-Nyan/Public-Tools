@@ -19,6 +19,7 @@
 using com.torinyan.PubTools.Editor.Features;
 using com.torinyan.PubTools.Runtime.Components;
 using System;
+using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -32,7 +33,17 @@ namespace com.torinyan.PubTools.Editor.Tools
             AssetDatabase.SaveAssets();
 
             try {
-                EnsureOutputFolderExists();
+                // Cleanup before build
+                if (AssetDatabase.IsValidFolder(ToriUtils.GeneratedAssetFolder)) {
+                    var files = Directory.GetFiles(ToriUtils.GeneratedAssetFolder, "*.*", SearchOption.TopDirectoryOnly)
+                        .Where(x => !x.EndsWith(".meta"));
+
+                    foreach (var item in files) {
+                        AssetDatabase.DeleteAsset(item);
+                    }
+                }
+
+                ToriUtils.EnsureEmptyAnimExists();
                 StateHolder.Load(avatar);
 
                 foreach (var addon in components.Where(x => x is ToriAddonSettings)) {
@@ -61,14 +72,6 @@ namespace com.torinyan.PubTools.Editor.Tools
                 AssetDatabase.SaveAssets();
                 StateHolder.Unload();
             }
-        }
-
-        private void EnsureOutputFolderExists() {
-            if (AssetDatabase.IsValidFolder(ToriUtils.GeneratedAssetFolder))
-                return;
-
-            var split = ToriUtils.GeneratedAssetFolder.Split('/');
-            AssetDatabase.CreateFolder(split[0], split[1]);
         }
     }
 }

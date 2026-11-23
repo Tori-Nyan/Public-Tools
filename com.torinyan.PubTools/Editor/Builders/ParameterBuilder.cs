@@ -36,15 +36,17 @@ namespace com.torinyan.PubTools.Editor.Builders
 
             public float DefaultValue;
 
-            public bool NetworkSynced;
+            public bool Synced;
 
-            public byte BitWidth;
+#if TORI_VRC_SDK_3_10_6
+            public byte BitWidth = 8;
 
             public bool UseCustomLerpDuration;
 
             public float CustomLerpDuration;
 
             public bool FlippedRepresentation;
+#endif
         }
 
         private VRCExpressionParameters _paramFile;
@@ -60,40 +62,28 @@ namespace com.torinyan.PubTools.Editor.Builders
             Init(avatarParams);
 
         private void Init(VRCExpressionParameters avatarParams) {
-            VRCExpressionParameters parameters = avatarParams;
-            string assetPath = AssetDatabase.GetAssetPath(parameters);
+            _paramFile = avatarParams;
+            string assetPath = null == _paramFile ? string.Empty : AssetDatabase.GetAssetPath(_paramFile);
 
-            if (null == parameters || string.IsNullOrWhiteSpace(assetPath)) {
-                parameters = ScriptableObject.CreateInstance<VRCExpressionParameters>();
-                parameters.name = "Tori Params";
-                parameters.parameters = Array.Empty<VRCExpressionParameters.Parameter>();
-                assetPath = Path.Combine(ToriUtils.GeneratedAssetFolder, $"{parameters.name}.asset");
-                AssetDatabase.CreateAsset(parameters, assetPath);
+            if (string.IsNullOrWhiteSpace(assetPath)) {
+                _paramFile = ScriptableObject.CreateInstance<VRCExpressionParameters>();
+                _paramFile.name = "Tori Params";
+                _paramFile.parameters = Array.Empty<VRCExpressionParameters.Parameter>();
+                assetPath = Path.Combine(ToriUtils.GeneratedAssetFolder, $"{_paramFile.name}.asset");
+                AssetDatabase.CreateAsset(_paramFile, assetPath);
             } else if (!(
                 assetPath.Contains(ToriUtils.CToriGeneratedFolder, StringComparison.OrdinalIgnoreCase) ||
                 assetPath.Contains(ToriUtils.CVRCFuryTempFolder, StringComparison.OrdinalIgnoreCase) ||
                 assetPath.Contains(ToriUtils.CNDMFGeneratedFolder, StringComparison.OrdinalIgnoreCase)
             )) {
-                parameters = UnityEngine.Object.Instantiate(parameters);
-                parameters.name += ToriUtils.GeneratedAssetSuffix;
-                assetPath = Path.Combine(ToriUtils.GeneratedAssetFolder, $"{parameters.name}.asset");
-                AssetDatabase.CreateAsset(parameters, assetPath);
+                _paramFile = ScriptableObject.CreateInstance<VRCExpressionParameters>();
+                EditorUtility.CopySerialized(avatarParams, _paramFile);
+                _paramFile.name = $"{avatarParams.name}{ToriUtils.GeneratedAssetSuffix}";
+                assetPath = Path.Combine(ToriUtils.GeneratedAssetFolder, $"{_paramFile.name}.asset");
+                AssetDatabase.CreateAsset(_paramFile, assetPath);
             }
 
-            foreach (var item in parameters.parameters) {
-                _parameters.Add(new() {
-                    Name = item.name,
-                    Type = item.valueType,
-                    Saved = item.saved,
-                    DefaultValue = item.defaultValue,
-                    NetworkSynced = item.networkSynced,
-                    BitWidth = item.bitWidth,
-                    UseCustomLerpDuration = item.useCustomLerpDuration,
-                    CustomLerpDuration = item.customLerpDuration,
-                    FlippedRepresentation = item.flippedRepresentation
-                });
-            }
-
+            AddRawParams(_paramFile.parameters);
             StateHolder.Avatar.expressionParameters = _paramFile;
         }
 
@@ -103,39 +93,89 @@ namespace com.torinyan.PubTools.Editor.Builders
                 Type = VRCExpressionParameters.ValueType.Bool,
                 Saved = saved,
                 DefaultValue = val ? 1f : 0f,
-                NetworkSynced = synced,
-                BitWidth = 1
+                Synced = synced
             });
 
-        public void AddInt(string name, byte val = 0, bool saved = true, bool synced = true, byte bitWidth = 8,
-            bool customLerp = false, float lerpDuration = 0f, bool flippedRepresentation = false
+        public void AddInt(string name, byte val = 0, bool saved = true, bool synced = true, byte bitWidth = 8
+#if TORI_VRC_SDK_3_10_6
+            , bool customLerp = false, float lerpDuration = 0f, bool flippedRepresentation = false
+#endif
         ) =>
             _parameters.Add(new() {
                 Name = name,
                 Type = VRCExpressionParameters.ValueType.Int,
                 Saved = saved,
                 DefaultValue = val,
-                NetworkSynced = synced,
+                Synced = synced,
+#if TORI_VRC_SDK_3_10_6
                 BitWidth = bitWidth,
                 UseCustomLerpDuration = customLerp,
                 CustomLerpDuration = lerpDuration,
                 FlippedRepresentation = flippedRepresentation
+#endif
             });
 
-        public void AddFloat(string name, float val = 0f, bool saved = true, bool synced = true, byte bitWidth = 8,
-            bool customLerp = false, float lerpDuration = 0f, bool flippedRepresentation = false
+        public void AddFloat(string name, float val = 0f, bool saved = true, bool synced = true, byte bitWidth = 8
+#if TORI_VRC_SDK_3_10_6
+            , bool customLerp = false, float lerpDuration = 0f, bool flippedRepresentation = false
+#endif
         ) =>
             _parameters.Add(new() {
                 Name = name,
                 Type = VRCExpressionParameters.ValueType.Float,
                 Saved = saved,
                 DefaultValue = val,
-                NetworkSynced = synced,
+                Synced = synced,
+#if TORI_VRC_SDK_3_10_6
                 BitWidth = bitWidth,
                 UseCustomLerpDuration = customLerp,
                 CustomLerpDuration = lerpDuration,
                 FlippedRepresentation = flippedRepresentation
+#endif
             });
+
+        public void AddRawParam(VRCExpressionParameters.Parameter param) =>
+            _parameters.Add(new() {
+                Name = param.name,
+                Type = param.valueType,
+                Saved = param.saved,
+                DefaultValue = param.defaultValue,
+                Synced = param.networkSynced,
+#if TORI_VRC_SDK_3_10_6
+                BitWidth = param.bitWidth,
+                UseCustomLerpDuration = param.useCustomLerpDuration,
+                CustomLerpDuration = param.customLerpDuration,
+                FlippedRepresentation = param.flippedRepresentation
+#endif
+            });
+
+        public void AddRawParams(IEnumerable<VRCExpressionParameters.Parameter> parameters) {
+            foreach (var item in parameters) {
+                /**
+                 * Since we don't want to mess with parameters in any way, we skip any parameter
+                 * where the name already exists.
+                 *
+                 * As this is our tooling and will likely only be used by us, this shouldn't be
+                 * an issue what so ever. C:
+                 */
+                if (_parameters.Exists(x => item.name.Equals(x.Name, StringComparison.Ordinal)))
+                    continue;
+
+                _parameters.Add(new() {
+                    Name = item.name,
+                    Type = item.valueType,
+                    Saved = item.saved,
+                    DefaultValue = item.defaultValue,
+                    Synced = item.networkSynced,
+#if TORI_VRC_SDK_3_10_6
+                    BitWidth = item.bitWidth,
+                    UseCustomLerpDuration = item.useCustomLerpDuration,
+                    CustomLerpDuration = item.customLerpDuration,
+                    FlippedRepresentation = item.flippedRepresentation
+#endif
+                });
+            }
+        }
 
         public void Build() {
             List<VRCExpressionParameters.Parameter> result = new();
@@ -146,15 +186,18 @@ namespace com.torinyan.PubTools.Editor.Builders
                     valueType = item.Type,
                     saved = item.Saved,
                     defaultValue = item.DefaultValue,
-                    networkSynced = item.NetworkSynced,
+                    networkSynced = item.Synced,
+#if TORI_VRC_SDK_3_10_6
                     bitWidth = item.BitWidth,
                     useCustomLerpDuration = item.UseCustomLerpDuration,
                     customLerpDuration = item.CustomLerpDuration,
                     flippedRepresentation = item.FlippedRepresentation
+#endif
                 });
             }
 
             _paramFile.parameters = result.ToArray();
+            ToriUtils.MarkDirty(_paramFile);
         }
     }
 }

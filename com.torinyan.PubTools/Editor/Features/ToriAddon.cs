@@ -20,9 +20,7 @@ using com.torinyan.PubTools.Runtime;
 using com.torinyan.PubTools.Runtime.Components;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
-using VRC.SDK3.Avatars.ScriptableObjects;
 
 namespace com.torinyan.PubTools.Editor.Features
 {
@@ -32,10 +30,15 @@ namespace com.torinyan.PubTools.Editor.Features
             var skinnedMeshes = settings.GetComponentsInChildren<SkinnedMeshRenderer>();
             var staticMeshes = settings.GetComponentsInChildren<MeshRenderer>();
 
-            MergeParameters(settings.Parameters.parameters);
+            StateHolder.Parameter.AddRawParams(settings.Parameters.parameters);
 
             foreach (var menu in settings.Menus) {
-                MergeMenu(menu);
+                string cleanPrefix = menu.Prefix.TrimStart('/');
+                int lastSlash = cleanPrefix.LastIndexOf('/');
+
+                string prefix = lastSlash < 0 ? string.Empty : cleanPrefix[..lastSlash];
+                string name = lastSlash < 0 ? cleanPrefix : cleanPrefix[(lastSlash + 1)..];
+                StateHolder.Menu.AddSubmenu(prefix, name, menu.Menu, menu.Icon, menu.Parameter, menu.Value);
             }
 
             var mergeTarget = string.Empty;
@@ -65,52 +68,6 @@ namespace com.torinyan.PubTools.Editor.Features
             foreach (var animator in settings.Animators) {
                 MergeAnimator(animator, settings.MergeSource, mergeTarget);
             }
-        }
-
-        private static void MergeParameters(VRCExpressionParameters.Parameter[] parameters) {
-            List<VRCExpressionParameters.Parameter> paramArr = new(StateHolder.Avatar.expressionParameters.parameters);
-
-            foreach (var parameter in parameters) {
-                if (null != StateHolder.Avatar.expressionParameters.FindParameter(parameter.name))
-                    continue;
-
-                paramArr.Add(new() {
-                    name = parameter.name,
-                    valueType = parameter.valueType,
-                    defaultValue = parameter.defaultValue,
-#if TORI_VRC_SDK_3_10_6
-                    bitWidth = parameter.bitWidth,
-                    useCustomLerpDuration = parameter.useCustomLerpDuration,
-                    flippedRepresentation = parameter.flippedRepresentation,
-#endif
-                    saved = parameter.saved,
-                    networkSynced = parameter.networkSynced
-                });
-            }
-
-            StateHolder.Avatar.expressionParameters.parameters = paramArr.ToArray();
-        }
-
-        private static void MergeMenu(AddonMenuInfo menu) {
-            var itemName = menu.Prefix[(menu.Prefix.LastIndexOf('/') + 1)..];
-            var parent = ToriUtils.GetMenuForItem(StateHolder.Avatar.expressionsMenu, ToriUtils.GeneratedAssetFolder, menu.Prefix);
-
-            foreach (var item in parent.controls.Where(x => VRCExpressionsMenu.Control.ControlType.SubMenu == x.type)) {
-                if (item.name.Equals(itemName, StringComparison.Ordinal)) {
-                    // Merge menu items, make unique name if button exists of different type or parameter, do the more.. stuff
-                    return;
-                }
-            }
-
-            parent.controls.Add(new() {
-                name = ToriUtils.MakeUniqueName(itemName, (candidate) => parent.controls.Any(x =>
-                    x.name.Equals(candidate, StringComparison.Ordinal)
-                )),
-                type = VRCExpressionsMenu.Control.ControlType.SubMenu,
-                subMenu = menu.Menu,
-                parameter = new() { name = string.Empty },
-                subParameters = Array.Empty<VRCExpressionsMenu.Control.Parameter>()
-            });
         }
 
         private static void UpdateAnchors(SkinnedMeshRenderer[] skinnedMeshes, MeshRenderer[] staticMeshes,

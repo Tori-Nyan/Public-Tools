@@ -53,13 +53,12 @@ namespace com.torinyan.PubTools.Editor
 
         public static void Load(VRCAvatarDescriptor avatar) {
             Avatar = avatar;
-            IsHuman = Avatar.GetComponent<Animator>()?.isHuman ?? false;
+            IsHuman = avatar.GetComponent<Animator>()?.isHuman ?? false;
+
+            Menu = avatar.customExpressions ? new(avatar.expressionsMenu) : new();
+            Parameter = avatar.customExpressions ? new(avatar.expressionParameters) : new();
 
             Avatar.customExpressions = true;
-
-            Menu = Avatar.customExpressions ? new(Avatar.expressionsMenu) : new();
-            Parameter = Avatar.customExpressions ? new(Avatar.expressionParameters) : new();
-
             ToriUtils.MarkDirty(Avatar);
         }
 

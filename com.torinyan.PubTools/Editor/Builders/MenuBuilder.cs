@@ -51,8 +51,8 @@ namespace com.torinyan.PubTools.Editor.Builders
         {
             public override ControlType Type => ControlType.SubMenu;
             public VRCExpressionsMenu Asset;
-            public string FilePath;
             public List<MenuItem> Items = new();
+            public bool IsMoreMenu = false;
 
             public SubMenuItem GetSubMenu(string name) {
                 int idx = Items.FindIndex(x =>
@@ -76,6 +76,17 @@ namespace com.torinyan.PubTools.Editor.Builders
                     return Items[idx];
 
                 return null;
+            }
+
+            public void SetIcon(string name, Texture2D icon) {
+                int idx = Items.FindIndex(x => name.Equals(x.Name, StringComparison.Ordinal));
+
+                if (idx < 0)
+                    return;
+
+                var item = Items[idx];
+                item.Icon = icon;
+                Items[idx] = item;
             }
         }
 
@@ -130,9 +141,9 @@ namespace com.torinyan.PubTools.Editor.Builders
 
         private void Init(VRCExpressionsMenu mainMenu) {
             VRCExpressionsMenu menu = mainMenu;
-            string assetPath = AssetDatabase.GetAssetPath(menu);
+            string assetPath = null == menu ? string.Empty : AssetDatabase.GetAssetPath(menu);
 
-            if (null == menu || string.IsNullOrWhiteSpace(assetPath)) {
+            if (string.IsNullOrWhiteSpace(assetPath)) {
                 menu = ScriptableObject.CreateInstance<VRCExpressionsMenu>();
                 menu.name = "Tori Menu";
                 assetPath = Path.Combine(ToriUtils.GeneratedAssetFolder, $"{menu.name}.asset");
@@ -142,34 +153,23 @@ namespace com.torinyan.PubTools.Editor.Builders
                 assetPath.Contains(ToriUtils.CVRCFuryTempFolder, StringComparison.OrdinalIgnoreCase) ||
                 assetPath.Contains(ToriUtils.CNDMFGeneratedFolder, StringComparison.OrdinalIgnoreCase)
             )) {
-                menu = UnityEngine.Object.Instantiate(menu);
-                menu.name += ToriUtils.GeneratedAssetSuffix;
-                assetPath = Path.Combine(ToriUtils.GeneratedAssetFolder, $"{menu.name}.asset");
-                AssetDatabase.CreateAsset(menu, assetPath);
+                VRCExpressionsMenu newMenu = ScriptableObject.CreateInstance<VRCExpressionsMenu>();
+                EditorUtility.CopySerialized(menu, newMenu);
+                newMenu.name = $"{menu.name}{ToriUtils.GeneratedAssetSuffix}";
+                assetPath = Path.Combine(ToriUtils.GeneratedAssetFolder, $"{newMenu.name}.asset");
+                AssetDatabase.CreateAsset(newMenu, assetPath);
+                menu = newMenu;
             }
 
-            _mainMenu = LoadMenu(menu, assetPath);
+            _mainMenu = LoadMenu(menu);
             StateHolder.Avatar.expressionsMenu = _mainMenu.Asset;
         }
 
-        private SubMenuItem LoadMenu(VRCExpressionsMenu menu, string filePath = null, Texture2D icon = null,
-            string parameter = "", float value = 1f
-        ) {
-            SubMenuItem menuItem = new() {
-                Name = menu.name,
-                Icon = icon,
-                Parameter = parameter,
-                Value = value,
-                Asset = menu,
-                FilePath = string.IsNullOrWhiteSpace(filePath)
-                    ? AssetDatabase.GetAssetPath(menu)
-                    : filePath
-            };
-
-            foreach (var item in menu.controls) {
+        private void ProcessControls(SubMenuItem menu, IEnumerable<VRCExpressionsMenu.Control> controls) {
+            foreach (var item in controls) {
                 switch (item.type) {
                     case ControlType.Button: {
-                        _mainMenu.Items.Add(new ButtonItem() {
+                        menu.Items.Add(new ButtonItem() {
                             Name = item.name,
                             Icon = item.icon,
                             Parameter = item.parameter.name,
@@ -178,7 +178,7 @@ namespace com.torinyan.PubTools.Editor.Builders
                         break;
                     }
                     case ControlType.Toggle: {
-                        _mainMenu.Items.Add(new ToggleItem() {
+                        menu.Items.Add(new ToggleItem() {
                             Name = item.name,
                             Icon = item.icon,
                             Parameter = item.parameter.name,
@@ -187,8 +187,8 @@ namespace com.torinyan.PubTools.Editor.Builders
                         break;
                     }
                     case ControlType.SubMenu: {
-                        _mainMenu.Items.Add(LoadMenu(
-                            item.subMenu, null, item.icon, item.parameter.name, item.value
+                        menu.Items.Add(LoadMenu(
+                            item.subMenu, item.icon, item.parameter.name, item.value
                         ));
                         break;
                     }
@@ -201,7 +201,7 @@ namespace com.torinyan.PubTools.Editor.Builders
                         Label labelDown = item.GetLabel(2);
                         Label labelLeft = item.GetLabel(3);
 
-                        _mainMenu.Items.Add(new TwoAxisItem() {
+                        menu.Items.Add(new TwoAxisItem() {
                             Name = item.name,
                             Icon = item.icon,
                             Parameter = item.parameter.name,
@@ -232,7 +232,7 @@ namespace com.torinyan.PubTools.Editor.Builders
                         Parameter paramLeft = item.GetSubParameter(3);
                         Label labelLeft = item.GetLabel(3);
 
-                        _mainMenu.Items.Add(new FourAxisItem() {
+                        menu.Items.Add(new FourAxisItem() {
                             Name = item.name,
                             Icon = item.icon,
                             Parameter = item.parameter.name,
@@ -254,7 +254,7 @@ namespace com.torinyan.PubTools.Editor.Builders
                     }
                     case ControlType.RadialPuppet: {
                         Parameter param = item.GetSubParameter(0);
-                        _mainMenu.Items.Add(new RadialItem() {
+                        menu.Items.Add(new RadialItem() {
                             Name = item.name,
                             Icon = item.icon,
                             Parameter = item.parameter.name,
@@ -264,12 +264,22 @@ namespace com.torinyan.PubTools.Editor.Builders
                         break;
                     }
                     default: {
-                        Debug.LogWarning($"[{ToriUtils.LogPrefix}] Unsupported menu item type", menu);
+                        Debug.LogWarning($"[{ToriUtils.LogPrefix}] Unsupported menu item type");
                         break;
                     }
                 }
             }
+        }
 
+        private SubMenuItem LoadMenu(VRCExpressionsMenu menu, Texture2D icon = null, string parameter = "", float value = 1f) {
+            SubMenuItem menuItem = new() {
+                Name = menu.name,
+                Icon = icon,
+                Parameter = parameter,
+                Value = value,
+                Asset = menu
+            };
+            ProcessControls(menuItem, menu.controls);
             return menuItem;
         }
 
@@ -289,19 +299,18 @@ namespace com.torinyan.PubTools.Editor.Builders
                     continue;
                 }
 
-                string fileName = ToriUtils.MakeUniqueName(
-                    $"{item}{ToriUtils.GeneratedAssetSuffix}",
-                    (candidate) => {
-                        var path = Path.Combine(ToriUtils.GeneratedAssetFolder, $"{candidate}.asset");
-                        return null != AssetDatabase.LoadMainAssetAtPath(path);
-                    }
-                );
+                string filePath = ToriUtils.MakeUniqueName(
+                    Path.Combine(ToriUtils.GeneratedAssetFolder, $"{item}{ToriUtils.GeneratedAssetSuffix}"),
+                    (candidate) => null != AssetDatabase.LoadMainAssetAtPath($"{candidate}.asset")
+                ) + ".asset";
+
                 VRCExpressionsMenu menuFile = ScriptableObject.CreateInstance<VRCExpressionsMenu>();
-                menuFile.name = fileName;
+                menuFile.name = Path.GetFileNameWithoutExtension(filePath);
+                AssetDatabase.CreateAsset(menuFile, filePath);
+
                 child = new() {
                     Name = item,
-                    Asset = menuFile,
-                    FilePath = Path.Combine(ToriUtils.GeneratedAssetFolder, $"{menuFile.name}.asset")
+                    Asset = menuFile
                 };
                 menu.Items.Add(child);
                 menu = child;
@@ -350,31 +359,42 @@ namespace com.torinyan.PubTools.Editor.Builders
             });
         }
 
-        public void AddSubmenu(string menuPrefix, string name, Texture2D icon = null, string parameter = "", float value = 1f) {
-            SubMenuItem parent = GetParentMenu(menuPrefix);
+        private SubMenuItem GetOrCreateMenu(SubMenuItem parent, string name, Texture2D icon, string parameter, float value) {
             SubMenuItem menu = parent.GetSubMenu(name);
 
             if (null != menu)
-                return;
+                return menu;
 
-            string fileName = ToriUtils.MakeUniqueName(
-                $"{name}{ToriUtils.GeneratedAssetSuffix}",
-                (candidate) => {
-                    var path = Path.Combine(ToriUtils.GeneratedAssetFolder, $"{candidate}.asset");
-                    return null != AssetDatabase.LoadMainAssetAtPath(path);
-                }
-            );
-            VRCExpressionsMenu menuFile = ScriptableObject.CreateInstance<VRCExpressionsMenu>();
-            menuFile.name = fileName;
+            string assetPath = ToriUtils.MakeUniqueName(
+                Path.Combine(ToriUtils.GeneratedAssetFolder, $"{name}{ToriUtils.GeneratedAssetSuffix}"),
+                (candidate) => null != AssetDatabase.LoadMainAssetAtPath($"{candidate}.asset")
+            ) + ".asset";
+
+            VRCExpressionsMenu newMenu = ScriptableObject.CreateInstance<VRCExpressionsMenu>();
+            newMenu.name = Path.GetFileNameWithoutExtension(assetPath);
+            AssetDatabase.CreateAsset(newMenu, assetPath);
             menu = new() {
                 Name = name,
-                Asset = menuFile,
-                FilePath = Path.Combine(ToriUtils.GeneratedAssetFolder, $"{menuFile.name}.asset"),
+                Asset = newMenu,
                 Icon = icon,
                 Parameter = parameter,
                 Value = value
             };
             parent.Items.Add(menu);
+            return menu;
+        }
+
+        public void AddSubmenu(string menuPrefix, string name, Texture2D icon = null, string parameter = "", float value = 1f) {
+            SubMenuItem parent = GetParentMenu(menuPrefix);
+            GetOrCreateMenu(parent, name, icon, parameter, value);
+        }
+
+        public void AddSubmenu(string menuPrefix, string name, VRCExpressionsMenu menu, Texture2D icon = null, string parameter = "",
+            float value = 1f
+        ) {
+            SubMenuItem parent = GetParentMenu(menuPrefix);
+            SubMenuItem menuItem = GetOrCreateMenu(parent, name, icon, parameter, value);
+            ProcessControls(menuItem, menu.controls);
         }
 
         public void AddTwoAxis(string menuPrefix, string name, Texture2D icon = null, string parameter = "", float value = 1f,
@@ -484,8 +504,141 @@ namespace com.torinyan.PubTools.Editor.Builders
             });
         }
 
-        public void Build() {
-            //
+        public void SetIcon(string itemPath, Texture2D icon) {
+            string cleanPath = itemPath.TrimStart('/');
+            int lastSlash = cleanPath.LastIndexOf('/');
+
+            string prefix = lastSlash < 0 ? string.Empty : cleanPath[..lastSlash];
+            string name = lastSlash < 0 ? cleanPath : cleanPath[(lastSlash + 1)..];
+
+            SubMenuItem parent = GetParentMenu(prefix);
+            parent.SetIcon(name, icon);
+        }
+
+        public void Build() =>
+            ProcessSubMenu(_mainMenu);
+
+        private void ProcessSubMenu(SubMenuItem submenu) {
+            if (submenu.Items.Count <= 8) {
+                ProcessChunk(submenu.Asset, submenu.Items);
+                return;
+            }
+
+            int processed = 0;
+            int setId = 1;
+            VRCExpressionsMenu asset = submenu.Asset;
+
+            while (processed < submenu.Items.Count) {
+                int remainder = submenu.Items.Count - processed;
+                MenuItem[] chunk;
+
+                if (remainder <= 8) {
+                    chunk = new MenuItem[remainder];
+
+                    for (int i = 0; i < remainder; i++) {
+                        chunk[i] = submenu.Items[i + processed];
+                    }
+
+                    ProcessChunk(asset, chunk);
+                    break;
+                }
+
+                chunk = new MenuItem[8];
+
+                for (int i = 0; i < 7; i++) {
+                    chunk[i] = submenu.Items[i + processed];
+                }
+
+                var moreMenu = ScriptableObject.CreateInstance<VRCExpressionsMenu>();
+                moreMenu.name = $"{submenu.Asset.name}_{setId++:000}";
+                AssetDatabase.CreateAsset(moreMenu, Path.Combine(ToriUtils.GeneratedAssetFolder, $"{moreMenu.name}.asset"));
+
+                chunk[7] = new SubMenuItem() {
+                    Name = "More..",
+                    Asset = moreMenu,
+                    IsMoreMenu = true
+                };
+                ProcessChunk(asset, chunk);
+                asset = moreMenu;
+                processed += 7;
+            }
+        }
+
+        private void ProcessChunk(VRCExpressionsMenu asset, IEnumerable<MenuItem> items) {
+            asset.controls.Clear();
+
+            foreach (var item in items) {
+                VRCExpressionsMenu.Control control = new() {
+                    name = item.Name,
+                    icon = item.Icon,
+                    parameter = new() { name = item.Parameter },
+                    value = item.Value,
+                    subParameters = Array.Empty<Parameter>(),
+                    labels = Array.Empty<Label>()
+                };
+
+                switch (item) {
+                    case ButtonItem: {
+                        control.type = ControlType.Button;
+                        break;
+                    }
+                    case ToggleItem: {
+                        control.type = ControlType.Toggle;
+                        break;
+                    }
+                    case SubMenuItem: {
+                        var typedItem = (SubMenuItem)item;
+                        control.type = ControlType.SubMenu;
+                        control.subMenu = typedItem.Asset;
+
+                        if (!typedItem.IsMoreMenu)
+                            ProcessSubMenu(typedItem);
+
+                        break;
+                    }
+                    case TwoAxisItem: {
+                        var typedItem = (TwoAxisItem)item;
+                        control.type = ControlType.TwoAxisPuppet;
+                        control.subParameters = new Parameter[] {
+                            new() { name = typedItem.HorizontalParam },
+                            new() { name = typedItem.VerticalParam }
+                        };
+                        control.labels = new Label[] {
+                            new() { name = typedItem.UpLabel,    icon = typedItem.UpIcon    },
+                            new() { name = typedItem.RightLabel, icon = typedItem.RightIcon },
+                            new() { name = typedItem.DownLabel,  icon = typedItem.DownIcon  },
+                            new() { name = typedItem.LeftLabel,  icon = typedItem.LeftIcon  }
+                        };
+                        break;
+                    }
+                    case FourAxisItem: {
+                        var typedItem = (FourAxisItem)item;
+                        control.type = ControlType.FourAxisPuppet;
+                        control.subParameters = new Parameter[] {
+                            new() { name = typedItem.UpParam },
+                            new() { name = typedItem.RightParam },
+                            new() { name = typedItem.DownParam },
+                            new() { name = typedItem.LeftParam }
+                        };
+                        control.labels = new Label[] {
+                            new() { name = typedItem.UpLabel,    icon = typedItem.UpIcon    },
+                            new() { name = typedItem.RightLabel, icon = typedItem.RightIcon },
+                            new() { name = typedItem.DownLabel,  icon = typedItem.DownIcon  },
+                            new() { name = typedItem.LeftLabel,  icon = typedItem.LeftIcon  }
+                        };
+                        break;
+                    }
+                    case RadialItem: {
+                        control.type = ControlType.RadialPuppet;
+                        control.subParameters = new Parameter[] { new() { name = ((RadialItem)item).RadialParam}};
+                        break;
+                    }
+                    default: continue;
+                }
+
+                asset.controls.Add(control);
+                ToriUtils.MarkDirty(asset);
+            }
         }
     }
 }

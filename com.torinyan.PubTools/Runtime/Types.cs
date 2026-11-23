@@ -32,7 +32,10 @@ namespace com.torinyan.PubTools.Runtime
     [Serializable]
     public class AddonMenuInfo
     {
+        public string Prefix = string.Empty;
         public VRCExpressionsMenu Menu;
-        public string Prefix;
+        public Texture2D Icon;
+        public string Parameter = string.Empty;
+        public float Value = 1f;
     }
 }
