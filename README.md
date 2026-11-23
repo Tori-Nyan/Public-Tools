@@ -26,8 +26,5 @@ This feature relies on a component that can be added via the object component me
 
 ## Set Menu Icon
 
-> [!CAUTION]
-> **Not Finished**
-
 A little component to set menu item icons, making them all adorable 'n stuff. C:  
 This feature relies on a component that can be added via the object component menu `Torinyan` / `Set Menu Icon`
