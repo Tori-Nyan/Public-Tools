@@ -19,5 +19,6 @@ using UnityEngine;
 
 namespace com.torinyan.PubTools.Runtime.Components
 {
+    [HelpURL("https://github.com/Tori-Nyan/Public-Tools/blob/master/README.md")]
     public abstract class ToriComponent : MonoBehaviour { }
 }
