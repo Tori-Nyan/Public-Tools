@@ -24,6 +24,16 @@ To realize this, we'll have to make it ourselves. C:
 
 This feature relies on a component that can be added via the object component menu `Torinyan` / `Torinyan Addon`
 
+## Set Anchors
+
+A little component to update the root-bone and/or anchor override values for mesh-objects childed to the component's GameObject.  
+This feature relies on a component that can be added via the object component menu `Torinyan` / `Set Anchors`
+
+## Set Bounds
+
+A little component to update the bounds for mesh-objects childed to the component's GameObject.  
+This feature relies on a component that can be added via the object component menu `Torinyan` / `Set Bounds`
+
 ## Set Menu Icon
 
 A little component to set menu item icons, making them all adorable 'n stuff. C:  
