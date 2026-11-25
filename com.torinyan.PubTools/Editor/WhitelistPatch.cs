@@ -34,8 +34,8 @@ namespace com.torinyan.PubTools.Editor
             // This is purely here because some other addons initialize the vrcsdk whitelist cache for some reason
             try {
                 Debug.Log($"[{ToriUtils.LogPrefix}] Clearing whitelist cache ...");
-                var cachedWhitelists = GetFieldInfoFromAnyAssembly("VRC.SDKBase.Validation.ValidationUtils", "_whitelistCache");
-                var whitelists = cachedWhitelists.GetValue(null);
+                FieldInfo cachedWhitelists = GetFieldInfoFromAnyAssembly("VRC.SDKBase.Validation.ValidationUtils", "_whitelistCache");
+                object whitelists = cachedWhitelists.GetValue(null);
                 whitelists.GetType().GetMethod("Clear").Invoke(whitelists, Array.Empty<object>());
             } catch (Exception e) {
                 Debug.LogError(new Exception($"[{ToriUtils.LogPrefix}] Failed to clear whitelist cache", e));
@@ -43,14 +43,14 @@ namespace com.torinyan.PubTools.Editor
         }
 
         private static void PatchWhitelist(string type) {
-            var whitelistField = GetFieldInfoFromAnyAssembly(type, "ComponentTypeWhiteListCommon");
-            var whitelist = (string[])whitelistField.GetValue(null);
+            FieldInfo whitelistField = GetFieldInfoFromAnyAssembly(type, "ComponentTypeWhiteListCommon");
+            string[] whitelist = (string[])whitelistField.GetValue(null);
             ArrayUtility.Add(ref whitelist, CToriAddonSettingsName);
             whitelistField.SetValue(null, whitelist);
         }
 
         private static FieldInfo GetFieldInfoFromAnyAssembly(string type, string field) {
-            var typeObj = AppDomain.CurrentDomain.GetAssemblies()
+            Type typeObj = AppDomain.CurrentDomain.GetAssemblies()
                 .Select(assembly => assembly.GetType(type))
                 .FirstOrDefault(t => t != null);
             return typeObj.GetField(field, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);

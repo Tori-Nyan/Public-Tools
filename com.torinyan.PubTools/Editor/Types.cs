@@ -75,12 +75,12 @@ namespace com.torinyan.PubTools.Editor
             FixNullAnimatorCtrlArrays();
 
             for (int i = 0; i < TargetAvatar.baseAnimationLayers.Length; i++) {
-                var item = TargetAvatar.baseAnimationLayers[i];
+                VRCAvatarDescriptor.CustomAnimLayer item = TargetAvatar.baseAnimationLayers[i];
 
                 if (type != item.type)
                     continue;
 
-                var animator = (item.isDefault || null == item.animatorController)
+                AnimatorController animator = (item.isDefault || null == item.animatorController)
                     ? ToriUtils.GetDefaultController(type)
                     : (item.animatorController as AnimatorController);
                 item.animatorController = ToriUtils.CloneAssetIfNotGenerated(animator);
@@ -94,7 +94,7 @@ namespace com.torinyan.PubTools.Editor
                 if (type != item.type)
                     continue;
 
-                var animator = (item.isDefault || null == item.animatorController)
+                AnimatorController animator = (item.isDefault || null == item.animatorController)
                     ? ToriUtils.GetDefaultController(type)
                     : (item.animatorController as AnimatorController);
                 item.animatorController = ToriUtils.CloneAssetIfNotGenerated(animator);

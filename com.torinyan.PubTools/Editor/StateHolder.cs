@@ -32,6 +32,7 @@ namespace com.torinyan.PubTools.Editor
         public static bool IsHuman { get; private set; }
         public static MenuBuilder Menu { get; private set; }
         public static ParameterBuilder Parameter { get; private set; }
+        public static MeshBuilder Meshes { get; private set; }
 
         [InitializeOnLoadMethod]
         static void Init() {
@@ -45,7 +46,7 @@ namespace com.torinyan.PubTools.Editor
             !Application.isPlaying || !_objStates.Contains(go.transform);
 
         public static void SetProcessed(GameObject go) {
-            var goTrans = go.transform;
+            Transform goTrans = go.transform;
 
             if (!_objStates.Contains(goTrans))
                 _objStates.Add(goTrans);
@@ -57,12 +58,14 @@ namespace com.torinyan.PubTools.Editor
 
             Menu = avatar.customExpressions ? new(avatar.expressionsMenu) : new();
             Parameter = avatar.customExpressions ? new(avatar.expressionParameters) : new();
-
             Avatar.customExpressions = true;
             ToriUtils.MarkDirty(Avatar);
+
+            Meshes = new();
         }
 
         public static void Unload() {
+            Meshes = null;
             Parameter = null;
             Menu = null;
             Avatar = null;

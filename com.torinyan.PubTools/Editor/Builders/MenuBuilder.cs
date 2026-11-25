@@ -287,7 +287,7 @@ namespace com.torinyan.PubTools.Editor.Builders
             if (string.IsNullOrWhiteSpace(menuPrefix))
                 return _mainMenu;
 
-            var split = menuPrefix.Split('/');
+            string[] split = menuPrefix.Split('/');
             SubMenuItem menu = _mainMenu;
             SubMenuItem child;
 
@@ -549,7 +549,7 @@ namespace com.torinyan.PubTools.Editor.Builders
                     chunk[i] = submenu.Items[i + processed];
                 }
 
-                var moreMenu = ScriptableObject.CreateInstance<VRCExpressionsMenu>();
+                VRCExpressionsMenu moreMenu = ScriptableObject.CreateInstance<VRCExpressionsMenu>();
                 moreMenu.name = $"{submenu.Asset.name}_{setId++:000}";
                 AssetDatabase.CreateAsset(moreMenu, Path.Combine(ToriUtils.GeneratedAssetFolder, $"{moreMenu.name}.asset"));
 
@@ -587,7 +587,7 @@ namespace com.torinyan.PubTools.Editor.Builders
                         break;
                     }
                     case SubMenuItem: {
-                        var typedItem = (SubMenuItem)item;
+                        SubMenuItem typedItem = (SubMenuItem)item;
                         control.type = ControlType.SubMenu;
                         control.subMenu = typedItem.Asset;
 
@@ -597,7 +597,7 @@ namespace com.torinyan.PubTools.Editor.Builders
                         break;
                     }
                     case TwoAxisItem: {
-                        var typedItem = (TwoAxisItem)item;
+                        TwoAxisItem typedItem = (TwoAxisItem)item;
                         control.type = ControlType.TwoAxisPuppet;
                         control.subParameters = new Parameter[] {
                             new() { name = typedItem.HorizontalParam },
@@ -612,7 +612,7 @@ namespace com.torinyan.PubTools.Editor.Builders
                         break;
                     }
                     case FourAxisItem: {
-                        var typedItem = (FourAxisItem)item;
+                        FourAxisItem typedItem = (FourAxisItem)item;
                         control.type = ControlType.FourAxisPuppet;
                         control.subParameters = new Parameter[] {
                             new() { name = typedItem.UpParam },

@@ -39,7 +39,7 @@ namespace com.torinyan.PubTools.Runtime.Components
 
         public bool UpdateAnchors = false;
 
-        public string Anchor = string.Empty;
+        public string RootBone = string.Empty;
 
         public string AnchorOverride = string.Empty;
 

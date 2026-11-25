@@ -23,12 +23,9 @@ using UnityEngine;
 namespace com.torinyan.PubTools.Editor.Components
 {
     [CustomEditor(typeof(SetMenuIconSettings)), CanEditMultipleObjects]
-    public class SetMenuIconSettingsEditor : UnityEditor.Editor
+    public class SetMenuIconSettingsEditor : ToriSettingsEditor
     {
-        private readonly static GUIContent CEditorTitle = new($"Torinyan Set Menu Icon {SetMenuIconSettings.Version}");
-
-        private GUIStyle _titleStyle;
-        private GUILayoutOption _editorTitleHeight;
+        protected override GUIContent CEditorTitle => new($"Torinyan Set Menu Icon {SetMenuIconSettings.Version}");
 
         private SerializedProperty _iconProperty;
         private SerializedProperty _itemPathProperty;

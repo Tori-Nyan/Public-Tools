@@ -19,6 +19,7 @@
 using com.torinyan.PubTools.Editor.Features;
 using com.torinyan.PubTools.Runtime.Components;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
@@ -35,7 +36,7 @@ namespace com.torinyan.PubTools.Editor.Tools
             try {
                 // Cleanup before build
                 if (AssetDatabase.IsValidFolder(ToriUtils.GeneratedAssetFolder)) {
-                    var files = Directory.GetFiles(ToriUtils.GeneratedAssetFolder, "*.*", SearchOption.TopDirectoryOnly)
+                    IEnumerable<string> files = Directory.GetFiles(ToriUtils.GeneratedAssetFolder, "*.*", SearchOption.TopDirectoryOnly)
                         .Where(x => !x.EndsWith(".meta"));
 
                     foreach (var item in files) {
@@ -46,11 +47,34 @@ namespace com.torinyan.PubTools.Editor.Tools
                 ToriUtils.EnsureEmptyAnimExists();
                 StateHolder.Load(avatar);
 
+                // Features that should process before ToriAddons
+                foreach (var feature in components.Where(x =>
+                    x is SetAnchorsSettings ||
+                    x is SetBoundsSettings
+                )) {
+                    switch (feature) {
+                        case SetAnchorsSettings: {
+                            SetAnchors.Process((SetAnchorsSettings)feature);
+                            break;
+                        }
+                        case SetBoundsSettings: {
+                            SetBounds.Process((SetBoundsSettings)feature);
+                            break;
+                        }
+                        default: break;
+                    }
+                }
+
                 foreach (var addon in components.Where(x => x is ToriAddonSettings)) {
                     ToriAddon.Process((ToriAddonSettings)addon);
                 }
 
-                foreach (var feature in components.Where(x => x is not ToriAddonSettings)) {
+                // Features that should process ofter ToriAddons, or don't have any real impact
+                foreach (var feature in components.Where(x =>
+                    x is not SetAnchorsSettings &&
+                    x is not SetBoundsSettings &&
+                    x is not ToriAddonSettings
+                )) {
                     switch (feature) {
                         case SetMenuIconSettings: {
                             SetMenuIcon.Process((SetMenuIconSettings)feature);

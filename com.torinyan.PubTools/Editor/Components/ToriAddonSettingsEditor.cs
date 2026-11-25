@@ -19,17 +19,13 @@
 using com.torinyan.PubTools.Runtime.Components;
 using UnityEditor;
 using UnityEngine;
-using VRC.SDK3.Avatars.Components;
 
 namespace com.torinyan.PubTools.Editor.Components
 {
     [CustomEditor(typeof(ToriAddonSettings))]
-    public class ToriAddonSettingsEditor : UnityEditor.Editor
+    public class ToriAddonSettingsEditor : ToriSettingsEditor
     {
-        private readonly static GUIContent CEditorTitle = new($"Torinyan Addon {ToriAddonSettings.Version}");
-
-        private GUIStyle _titleStyle;
-        private GUILayoutOption _editorTitleHeight;
+        protected override GUIContent CEditorTitle => new($"Torinyan Addon {ToriAddonSettings.Version}");
 
         private SerializedProperty _animatorsProperty;
         private SerializedProperty _parametersProperty;
@@ -39,7 +35,7 @@ namespace com.torinyan.PubTools.Editor.Components
         private SerializedProperty _newBoundsProperty;
 
         private SerializedProperty _updateAnchorsProperty;
-        private SerializedProperty _anchorProperty;
+        private SerializedProperty _rootBoneProperty;
         private SerializedProperty _anchorOverrideProperty;
 
         private SerializedProperty _mergeArmatureProperty;
@@ -60,7 +56,7 @@ namespace com.torinyan.PubTools.Editor.Components
             _newBoundsProperty = serializedObject.FindProperty("NewBounds");
 
             _updateAnchorsProperty = serializedObject.FindProperty("UpdateAnchors");
-            _anchorProperty = serializedObject.FindProperty("Anchor");
+            _rootBoneProperty = serializedObject.FindProperty("RootBone");
             _anchorOverrideProperty = serializedObject.FindProperty("AnchorOverride");
 
             _mergeArmatureProperty = serializedObject.FindProperty("MergeArmature");
@@ -115,22 +111,22 @@ namespace com.torinyan.PubTools.Editor.Components
                 EditorGUILayout.LabelField(new GUIContent("Root Bone",
                     "Object path to the new Root Bone for the mesh, leave empty to keep the original."
                 ));
-                var anchorObj = EditorGUILayout.ObjectField(GUIContent.none, null, typeof(Transform), true) as Transform;
+                Transform anchorObj = EditorGUILayout.ObjectField(GUIContent.none, null, typeof(Transform), true) as Transform;
 
                 if (null != anchorObj) {
-                    var path = GetPath(anchorObj);
-                    _anchorProperty.stringValue = path;
+                    string path = GetPath(anchorObj);
+                    _rootBoneProperty.stringValue = path;
                 }
 
-                EditorGUILayout.PropertyField(_anchorProperty, GUIContent.none);
+                EditorGUILayout.PropertyField(_rootBoneProperty, GUIContent.none);
 
                 EditorGUILayout.LabelField(new GUIContent("Anchor Override",
                     "Object path to the new Anchor Override for the mesh, leave empty to keep the original."
                 ));
-                var anchorOverrideObj = EditorGUILayout.ObjectField(GUIContent.none, null, typeof(Transform), true) as Transform;
+                Transform anchorOverrideObj = EditorGUILayout.ObjectField(GUIContent.none, null, typeof(Transform), true) as Transform;
 
                 if (null != anchorOverrideObj) {
-                    var path = GetPath(anchorOverrideObj);
+                    string path = GetPath(anchorOverrideObj);
                     _anchorOverrideProperty.stringValue = path;
                 }
 
@@ -147,10 +143,10 @@ namespace com.torinyan.PubTools.Editor.Components
                 EditorGUILayout.LabelField(new GUIContent("Source",
                     "Addon's object to merge to the avatar's Armature"
                 ));
-                var mergeSourceObj = EditorGUILayout.ObjectField(GUIContent.none, null, typeof(Transform), true) as Transform;
+                Transform mergeSourceObj = EditorGUILayout.ObjectField(GUIContent.none, null, typeof(Transform), true) as Transform;
 
                 if (null != mergeSourceObj) {
-                    var path = GetPath(mergeSourceObj);
+                    string path = GetPath(mergeSourceObj);
                     _mergeSourceProperty.stringValue = path;
                 }
 
@@ -158,10 +154,10 @@ namespace com.torinyan.PubTools.Editor.Components
                 EditorGUILayout.LabelField(new GUIContent("Target",
                     "Path to the avatar's target object, relative to the VRC Avatar Descriptor"
                 ));
-                var mergeTargetObj = EditorGUILayout.ObjectField(GUIContent.none, null, typeof(Transform), true) as Transform;
+                Transform mergeTargetObj = EditorGUILayout.ObjectField(GUIContent.none, null, typeof(Transform), true) as Transform;
 
                 if (null != mergeTargetObj) {
-                    var path = GetPath(mergeTargetObj);
+                    string path = GetPath(mergeTargetObj);
                     _mergeTargetProperty.stringValue = path;
                 }
 
@@ -172,22 +168,6 @@ namespace com.torinyan.PubTools.Editor.Components
             }
 
             serializedObject.ApplyModifiedProperties();
-        }
-
-        private string GetPath(Transform target) {
-            var self = (serializedObject.targetObject as Component).transform;
-            string result = target.name;
-            var parent = target.parent;
-
-            while (null != parent &&
-                self != parent &&
-                !parent.TryGetComponent<VRCAvatarDescriptor>(out var _)
-            ) {
-                result = $"{parent.name}/{result}";
-                parent = parent.parent;
-            }
-
-            return result;
         }
     }
 }

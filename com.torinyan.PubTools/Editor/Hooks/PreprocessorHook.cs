@@ -40,7 +40,7 @@ namespace com.torinyan.PubTools.Editor.Hooks
                 return true;
             }
 
-            var components = obj.GetComponentsInChildren<ToriComponent>();
+            ToriComponent[] components = obj.GetComponentsInChildren<ToriComponent>();
 
             if (null == components || components.Length <= 0) {
                 Debug.Log($"[{ToriUtils.LogPrefix}] Skipping `PreprocessorHook` because there is nothing to process", obj);

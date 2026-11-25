@@ -22,9 +22,8 @@ namespace com.torinyan.PubTools.Editor.Features
 {
     internal static class SetMenuIcon
     {
-        public static void Process(SetMenuIconSettings settings) {
+        public static void Process(SetMenuIconSettings settings) =>
             StateHolder.Menu.SetIcon(settings.ItemPath, settings.Icon);
-        }
     }
 }
 #endif

@@ -17,6 +17,7 @@
 */
 #if UNITY_EDITOR
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -76,12 +77,12 @@ namespace com.torinyan.PubTools.Editor
             FixNullAnimatorCtrlArrays(avatar, isHuman);
 
             for (int i = 0; i < avatar.baseAnimationLayers.Length; i++) {
-                var item = avatar.baseAnimationLayers[i];
+                VRCAvatarDescriptor.CustomAnimLayer item = avatar.baseAnimationLayers[i];
 
                 if (type != item.type)
                     continue;
 
-                var animator = (item.isDefault || null == item.animatorController)
+                AnimatorController animator = (item.isDefault || null == item.animatorController)
                     ? GetDefaultController(type)
                     : (item.animatorController as AnimatorController);
                 item.animatorController = CloneAssetIfNotGenerated(animator);
@@ -92,12 +93,12 @@ namespace com.torinyan.PubTools.Editor
             }
 
             for (int i = 0; i < avatar.specialAnimationLayers.Length; i++) {
-                var item = avatar.specialAnimationLayers[i];
+                VRCAvatarDescriptor.CustomAnimLayer item = avatar.specialAnimationLayers[i];
 
                 if (type != item.type)
                     continue;
 
-                var animator = (item.isDefault || null == item.animatorController)
+                AnimatorController animator = (item.isDefault || null == item.animatorController)
                     ? GetDefaultController(type)
                     : (item.animatorController as AnimatorController);
                 item.animatorController = CloneAssetIfNotGenerated(animator);
@@ -190,19 +191,19 @@ namespace com.torinyan.PubTools.Editor
                         }
                     };
 
-                    var baseLayer = CreateLayer(fxCtrl, "Base Layer");
+                    AnimatorControllerLayer baseLayer = CreateLayer(fxCtrl, "Base Layer");
                     baseLayer.stateMachine.AddStateMachine("hehe, torinyan was here\nDon't you dare clone our stuff\nI WILL kick peddles in your general direction if you do", new(0, -240));
                     return fxCtrl;
                 }
             }
 
-            var path = AssetDatabase.GUIDToAssetPath(guid) ??
+            string path = AssetDatabase.GUIDToAssetPath(guid) ??
                 throw new Exception($"[{LogPrefix}] Failed to find default {type} controller");
 
-            var c = AssetDatabase.LoadAssetAtPath<AnimatorController>(path) ??
+            AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(path) ??
                 throw new Exception($"[{LogPrefix}] Failed to load default {type} controller");
 
-            return c;
+            return controller;
         }
 
         internal static T CloneAssetIfNotGenerated<T>(T asset) where T : UnityEngine.Object {
@@ -229,7 +230,7 @@ namespace com.torinyan.PubTools.Editor
                 ext = "asset";
             }
 
-            var newAssetPath = Path.Combine(GeneratedAssetFolder, $"{asset.name}{GeneratedAssetSuffix}.{ext}");
+            string newAssetPath = Path.Combine(GeneratedAssetFolder, $"{asset.name}{GeneratedAssetSuffix}.{ext}");
             AssetDatabase.CopyAsset(assetPath, newAssetPath);
             return AssetDatabase.LoadAssetAtPath<T>(newAssetPath);
         }
@@ -243,30 +244,30 @@ namespace com.torinyan.PubTools.Editor
         }
 
         public static bool GetAnimatorWDPreference(AnimatorController animator, StringBuilder debug = null) {
-            var layersWithStates = animator.layers.Where(x => x.stateMachine.states.Length > 0);
-            var onStates = layersWithStates.Sum(x =>
+            IEnumerable<AnimatorControllerLayer> layersWithStates = animator.layers.Where(x => x.stateMachine.states.Length > 0);
+            int onStates = layersWithStates.Sum(x =>
                 x.stateMachine.states.Count(y => y.state.writeDefaultValues)
             );
-            var offStates = layersWithStates.Sum(x =>
+            int offStates = layersWithStates.Sum(x =>
                 x.stateMachine.states.Count(y => !y.state.writeDefaultValues)
             );
-            var makeStatesWD = onStates > offStates;
+            bool makeStatesWD = onStates > offStates;
 
             debug?.AppendLine($"\nWD decision ({onStates} on | {offStates} off) = {makeStatesWD}");
             return makeStatesWD;
         }
 
         public static AnimationClip EnsureEmptyAnimExists() {
-            var result = AssetDatabase.LoadAssetAtPath<AnimationClip>(EmptyAnimPath);
+            AnimationClip result = AssetDatabase.LoadAssetAtPath<AnimationClip>(EmptyAnimPath);
 
             if (null != result)
                 return result;
 
-            var split = EmptyAnimDirectory.Split('/');
-            var curPath = split[0];
+            string[] split = EmptyAnimDirectory.Split('/');
+            string curPath = split[0];
 
             for (int i = 1; i < split.Length; i++) {
-                var folder = split[i];
+                string folder = split[i];
 
                 if (!AssetDatabase.IsValidFolder($"{curPath}/{folder}"))
                     AssetDatabase.CreateFolder(curPath, folder);
@@ -281,7 +282,7 @@ namespace com.torinyan.PubTools.Editor
             };
             AssetDatabase.CreateAsset(result, EmptyAnimPath);
 
-            var settings = AnimationUtility.GetAnimationClipSettings(result);
+            AnimationClipSettings settings = AnimationUtility.GetAnimationClipSettings(result);
             settings.loopTime = false;
             AnimationUtility.SetAnimationClipSettings(result, settings);
 
@@ -294,7 +295,7 @@ namespace com.torinyan.PubTools.Editor
 
         public static void CreateParameter(AnimatorController animator, ParameterInfo info, VRCExpressionParameters vrcParameters = null) {
             if (!animator.parameters.Any(x => x.name.Equals(info.Name, StringComparison.Ordinal))) {
-                var animArray = animator.parameters;
+                AnimatorControllerParameter[] animArray = animator.parameters;
                 ArrayUtility.Add(ref animArray, new() {
                     name = info.Name,
                     type = info.AnimatorType,
@@ -306,7 +307,7 @@ namespace com.torinyan.PubTools.Editor
             }
 
             if (null != vrcParameters && info.AddToVRC && !vrcParameters.parameters.Any(x => x.name == info.Name)) {
-                var vrcArray = vrcParameters.parameters;
+                VRCExpressionParameters.Parameter[] vrcArray = vrcParameters.parameters;
                 ArrayUtility.Add(ref vrcArray, new() {
                     name = info.Name,
                     valueType = info.VRCType,
@@ -323,7 +324,7 @@ namespace com.torinyan.PubTools.Editor
             if (null == mainMenu || string.IsNullOrWhiteSpace(menuFolder) || string.IsNullOrWhiteSpace(menuItemPath))
                 return null;
 
-            var pathSplit = menuItemPath.Trim().Split('/');
+            string[] pathSplit = menuItemPath.Trim().Split('/');
 
             if (pathSplit.Length <= 1)
                 return mainMenu;
@@ -332,9 +333,9 @@ namespace com.torinyan.PubTools.Editor
             VRCExpressionsMenu submenu = null;
 
             for (int i = 0; i < pathSplit.Length - 1; i++) {
-                var nameStr = pathSplit[i];
-                var submenuName = $"{mainMenu.name} {nameStr}";
-                var submenuPath = $"{menuFolder}/{submenuName}.asset";
+                string nameStr = pathSplit[i];
+                string submenuName = $"{mainMenu.name} {nameStr}";
+                string submenuPath = $"{menuFolder}/{submenuName}.asset";
                 submenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(submenuPath);
 
                 if (null == submenu) {
@@ -359,7 +360,7 @@ namespace com.torinyan.PubTools.Editor
         }
 
         public static AnimatorControllerLayer CreateLayer(AnimatorController animator, string layerName) {
-            var cleanName = animator.MakeUniqueLayerName(layerName.Trim());
+            string cleanName = animator.MakeUniqueLayerName(layerName.Trim());
             AnimatorControllerLayer newLayer = new() {
                 name = cleanName,
                 blendingMode = AnimatorLayerBlendingMode.Override,
@@ -374,7 +375,7 @@ namespace com.torinyan.PubTools.Editor
             };
             AssetDatabase.AddObjectToAsset(newLayer.stateMachine, AssetDatabase.GetAssetPath(animator));
 
-            var array = animator.layers;
+            AnimatorControllerLayer[] array = animator.layers;
             ArrayUtility.Add(ref array, newLayer);
             animator.layers = array;
 
@@ -391,7 +392,7 @@ namespace com.torinyan.PubTools.Editor
             };
             AssetDatabase.AddObjectToAsset(newState, AssetDatabase.GetAssetPath(stateMachine));
 
-            var array = stateMachine.states;
+            ChildAnimatorState[] array = stateMachine.states;
             ArrayUtility.Add(ref array, new() {
                 state = newState,
                 position = position
@@ -418,7 +419,7 @@ namespace com.torinyan.PubTools.Editor
             };
             AssetDatabase.AddObjectToAsset(newTrans, AssetDatabase.GetAssetPath(srcState));
 
-            var array = srcState.transitions;
+            AnimatorStateTransition[] array = srcState.transitions;
             ArrayUtility.Add(ref array, newTrans);
             srcState.transitions = array;
 
@@ -426,7 +427,7 @@ namespace com.torinyan.PubTools.Editor
         }
 
         public static void AddCondition(AnimatorStateTransition transition, string name, AnimatorConditionMode mode, float threshold = 0f) {
-            var array = transition.conditions;
+            AnimatorCondition[] array = transition.conditions;
             ArrayUtility.Add(ref array, new() {
                 parameter = name,
                 mode = mode,

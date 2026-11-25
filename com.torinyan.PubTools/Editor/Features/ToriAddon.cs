@@ -20,6 +20,7 @@ using com.torinyan.PubTools.Runtime;
 using com.torinyan.PubTools.Runtime.Components;
 using System;
 using System.Collections.Generic;
+using UnityEditor.Animations;
 using UnityEngine;
 
 namespace com.torinyan.PubTools.Editor.Features
@@ -27,8 +28,8 @@ namespace com.torinyan.PubTools.Editor.Features
     internal static class ToriAddon
     {
         public static void Process(ToriAddonSettings settings) {
-            var skinnedMeshes = settings.GetComponentsInChildren<SkinnedMeshRenderer>();
-            var staticMeshes = settings.GetComponentsInChildren<MeshRenderer>();
+            SkinnedMeshRenderer[] skinnedMeshes = settings.GetComponentsInChildren<SkinnedMeshRenderer>();
+            MeshRenderer[] staticMeshes = settings.GetComponentsInChildren<MeshRenderer>();
 
             StateHolder.Parameter.AddRawParams(settings.Parameters.parameters);
 
@@ -45,7 +46,7 @@ namespace com.torinyan.PubTools.Editor.Features
 
             if (settings.MergeArmature) {
                 // We should probably check and create empties if target is missing
-                var objectName = settings.MergeSource[(settings.MergeSource.LastIndexOf('/') + 1)..];
+                string objectName = settings.MergeSource[(settings.MergeSource.LastIndexOf('/') + 1)..];
                 mergeTarget = $"{settings.MergeTarget}/{objectName}";
 
                 if (settings.MergeAsChild) {
@@ -60,53 +61,13 @@ namespace com.torinyan.PubTools.Editor.Features
             }
 
             if (settings.UpdateAnchors)
-                UpdateAnchors(skinnedMeshes, staticMeshes, settings.Anchor, settings.AnchorOverride);
+                StateHolder.Meshes.SetAnchor(skinnedMeshes, staticMeshes, settings.RootBone, settings.AnchorOverride);
 
             if (settings.UpdateBounds)
-                UpdateBounds(skinnedMeshes, settings.NewBounds);
+                StateHolder.Meshes.SetBounds(skinnedMeshes, settings.NewBounds);
 
             foreach (var animator in settings.Animators) {
                 MergeAnimator(animator, settings.MergeSource, mergeTarget);
-            }
-        }
-
-        private static void UpdateAnchors(SkinnedMeshRenderer[] skinnedMeshes, MeshRenderer[] staticMeshes,
-            string rootBone, string anchorOverride
-        ) {
-            foreach (var mesh in skinnedMeshes) {
-                if (!string.IsNullOrWhiteSpace(rootBone)) {
-                    var newRoot = StateHolder.Avatar.transform.Find(rootBone);
-
-                    if (null != newRoot)
-                        mesh.rootBone = newRoot;
-                }
-
-                if (!string.IsNullOrWhiteSpace(anchorOverride)) {
-                    var newAnchor = StateHolder.Avatar.transform.Find(anchorOverride);
-
-                    if (null != newAnchor)
-                        mesh.probeAnchor = newAnchor;
-                }
-
-                ToriUtils.MarkDirty(mesh);
-            }
-
-            foreach (var mesh in staticMeshes) {
-                if (!string.IsNullOrWhiteSpace(anchorOverride)) {
-                    var newAnchor = StateHolder.Avatar.transform.Find(anchorOverride);
-
-                    if (null != newAnchor)
-                        mesh.probeAnchor = newAnchor;
-
-                    ToriUtils.MarkDirty(mesh);
-                }
-            }
-        }
-
-        private static void UpdateBounds(SkinnedMeshRenderer[] skinnedMeshes, Bounds bounds) {
-            foreach (var mesh in skinnedMeshes) {
-                mesh.localBounds = bounds;
-                ToriUtils.MarkDirty(mesh);
             }
         }
 
@@ -139,13 +100,13 @@ namespace com.torinyan.PubTools.Editor.Features
         }
 
         private static Transform EnsureTargetExists(Transform root, string target) {
-            var parentObj = root.Find(target);
+            Transform parentObj = root.Find(target);
 
             if (null == parentObj) {
                 List<string> missingParents = new() {
                     target[(target.LastIndexOf('/') + 1)..]
                 };
-                var candidate = target[..target.LastIndexOf('/')];
+                string candidate = target[..target.LastIndexOf('/')];
                 Transform candidateObj = root.Find(candidate);
 
                 while (null == candidateObj && candidate.IndexOf('/') > 0) {
@@ -174,11 +135,9 @@ namespace com.torinyan.PubTools.Editor.Features
             return parentObj;
         }
 
-        private static void MergeAnimator(AddonAnimatorInfo animator, string oldAnimPath,
-            string newAnimPath
-        ) {
-            var srcCtrl = animator.Controller;
-            var dstCrtl = ToriUtils.GetOrCreateController(StateHolder.Avatar, StateHolder.IsHuman, animator.Type);
+        private static void MergeAnimator(AddonAnimatorInfo animator, string oldAnimPath, string newAnimPath) {
+            RuntimeAnimatorController srcCtrl = animator.Controller;
+            AnimatorController dstCrtl = ToriUtils.GetOrCreateController(StateHolder.Avatar, StateHolder.IsHuman, animator.Type);
 
             foreach (var clip in srcCtrl.animationClips) {
                 // Clone these into a single asset file

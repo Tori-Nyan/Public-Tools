@@ -1,3 +1,8 @@
+v0.1.4
+- Add Set Anchors component
+- Add Set Bounds component
+- Fix some coding styles
+
 v0.1.3
 - Fully implement Set Menu Icon
 - Add proper menu handling
